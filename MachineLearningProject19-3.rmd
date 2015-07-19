@@ -1,0 +1,101 @@
+---
+title: "PracticalMachineLearning"
+author: "pcm"
+date: "Saturday, July 18, 2015"
+output: html_document
+---
+
+#Background
+
+This is an analysis made on large amount of data about personal activity collected using devices such as Jawbone Up, Nike FuelBand. These type of devices  quantified self movement
+
+#The Goal
+
+To use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+The goal of the  project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. 
+
+#First steps
+I downloaded the data and also stored in a directory. Hence, I need to set that working directory
+I also load the libraries
+
+
+```{r}
+setwd("C:/Users/Pablo/Desktop/8 - Practical Machine Learning")
+library(caret)
+```
+
+First I read the files taking care to remove the NA and empty values
+
+```{r}
+training<-read.csv(file = 'pml-training.csv', na.strings=c("NA", ""))
+testing<-read.csv(file = 'pml-testing.csv', na.strings=c("NA", ""))
+```
+
+Then I check the number of records and columns for training and testing, respectively
+
+```{r}
+dim(training)
+dim(testing)
+```
+
+Obviously both sets have the same number of columns. Namely 160
+Now i will review how mnay records I have for each of the prediction variable called classe
+
+```{r}
+summary(training$classe)
+```
+
+I will also review the names of the differenc colums and a bit of content using head. This information is in the apendix and not in this report to make it shorter
+```{r,echo=TRUE, results='hide'}
+head(training)
+```
+
+I can see that the first 7 variable are not going to give me a prediction of the classe but they are just indicators that individualize the different records (names, dates, etc). Therefore I remove them
+```{r}
+training <-training [,-c(1:7)]
+```
+
+After this I still have 153 variables. Original 160 -7 removed = 153
+But I can also see a lot of variables have NA values. I will also remove them 
+```{r,echo=TRUE, results='hide'}
+NAColumns <- sapply(training, function (x) any(is.na(x) | x == ""))
+FinalColumns <- names(NAColumns)[!NAColumns]
+```
+
+Now, I Will only put the remaning 53 columns that are the ones that can give me material for prediction
+
+```{r,echo=TRUE, results='hide'}
+CleanTraining <- training[, FinalColumns]
+```
+
+Now that the data is clean, I will divide data in testing and training
+```{r,echo=TRUE, results='hide'}
+inTrain <- createDataPartition(y=CleanTraining$classe, p=0.7, list=FALSE)
+training <- CleanTraining[inTrain,]; testing <- CleanTraining[-inTrain,]
+```
+
+I inspect the final numbers of rows and columns
+
+```{r}
+dim(training);dim(testing)
+```
+
+
+Finally I will use the model with method random forest
+```{r,echo=TRUE, results='hide'}
+library(caret)
+modFit <- train(classe ~ .,method="rf",data=training)
+print(modFit$finalModel)
+```
+
+
+Now I will predict the model for the testing data set without showing the results (to make this report not so long)
+```{r,echo=TRUE, results='hide'}
+predictions<-predict(modFit, newdata=testing)
+predictions
+```
+
+In order to get a high level view of results I will construct a confusion matrix for the predictions 
+```{r}
+confusionMatrix(predictions, testing$classe)
+```
